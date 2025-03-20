@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+WORKDIR /app
+EXPOSE 80
+
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["src/SurveyApp.Api/SurveyApp.Api.csproj", "src/SurveyApp.Api/"]
+COPY ["src/SurveyApp.Application/SurveyApp.Application.csproj", "src/SurveyApp.Application/"]
+COPY ["src/SurveyApp.Domain/SurveyApp.Domain.csproj", "src/SurveyApp.Domain/"]
+COPY ["src/SurveyApp.Infrastructure/SurveyApp.Infrastructure.csproj", "src/SurveyApp.Infrastructure/"]
+RUN dotnet restore "./src/SurveyApp.Api/SurveyApp.Api.csproj"
+COPY . .
+WORKDIR "/src/src/SurveyApp.Api"
+RUN dotnet build "SurveyApp.Api.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "SurveyApp.Api.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "SurveyApp.Api.dll"]
